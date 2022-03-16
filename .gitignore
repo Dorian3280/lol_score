@@ -5,6 +5,12 @@
 
 # Own environment
 secret*
+data/
+test[0-9].py
+test.py
+
+#Tempary Files
+[Tt]emp*
 
 # User-specific files
 *.rsuser
