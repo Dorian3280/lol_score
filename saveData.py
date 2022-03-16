@@ -69,7 +69,7 @@ def getDFfromJson(champ, count):
 
     return pd.concat(array).reset_index(drop=True), not error
 
-# Type the champpion name in command line after execution of the .py file - python saveDate.py [Champion name]
+# Type the champion name in command line after execution of the .py file - python saveDate.py [Champion name]
 champ = sys.argv[1].title()
 count = 0
 process = True

@@ -28,7 +28,7 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions', 'totalMinionsKilled', 'neutralMinionsKilled']
+        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions']
     },
     "Draven": {
         "players": [
@@ -59,7 +59,7 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions', 'totalMinionsKilled', 'neutralMinionsKilled']
+        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions']
     },
 }
 
