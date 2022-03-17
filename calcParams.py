@@ -9,12 +9,12 @@ def returnParams(df: pd.DataFrame):
     params = {}
     weight = 4
     relevantdf = df.describe()
-    meanScoreCreeps = relevantdf.loc['mean']['scoreCreeps'] / (relevantdf.loc['mean']['gameDuration'] / 60)
-    meanDmg = relevantdf.loc['mean']['totalDamageDealtToChampions'] / (relevantdf.loc['mean']['gameDuration'] / 60)
+    meanScoreCreeps = relevantdf.loc['mean']['CsPerMinute']
+    meanDmg = relevantdf.loc['mean']['dmgPerMinute']
     params['kills'] = 1/weight, 0, relevantdf.loc['75%']['kills']
     params['deaths'] = 1/weight, 10, 0
-    params['scoreCreeps'] = 1/weight, round(meanScoreCreeps * 0.6, 1), round(meanScoreCreeps * 1.5, 1)
-    params['totalDamageDealtToChampions'] = 1/weight, round(meanDmg * 0.6), round(meanDmg * 1.5)
+    params['CsPerMinute'] = 1/weight, round(meanScoreCreeps * 0.6, 1), round(meanScoreCreeps * 1.5, 1)
+    params['dmgPerMinute'] = 1/weight, round(meanDmg * 0.6), round(meanDmg * 1.5)
     
     # tuple(weigth, minPerformorance, maxPerformance)
     return params
@@ -30,7 +30,7 @@ def updateParams(champ, params: dict):
         fi.close()
     fi.close()
 
-# Type the champpion name in command line after execution of the .py file - python saveDate.py [Champion name]
+# Type the champpion name in command line after execution of the .py file - python calcParams.py [Champion name]
 champ = sys.argv[1].title()
 
 df = pd.read_csv(f"data/{champ}.txt")

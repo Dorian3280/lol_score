@@ -64,7 +64,8 @@ def getDFfromJson(champ, count):
             try: player['hadAfkTeammate'] = player['challenges']['hadAfkTeammate']
             except KeyError: player['hadAfkTeammate'] = 0
             player['gameDuration'] = json['info']['gameDuration']
-            player['scoreCreeps'] = player['totalMinionsKilled'] + player['neutralMinionsKilled']
+            player['CsPerMinute'] = round((player['totalMinionsKilled'] + player['neutralMinionsKilled']) / (player['gameDuration'] / 60), 1)
+            player['dmgPerMinute'] = round(player['totalDamageDealtToChampions'] / (player['gameDuration'] / 60))
             array.append(pd.DataFrame({x: [player[x]] for x in DATA[champ]["columns"]}))
 
     return pd.concat(array).reset_index(drop=True), not error

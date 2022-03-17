@@ -28,7 +28,7 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions']
+        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'CsPerMinute', 'dmgPerMinute']
     },
     "Draven": {
         "players": [
@@ -59,7 +59,7 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'scoreCreeps', 'totalDamageDealtToChampions']
+        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'CsPerMinute', 'dmgPerMinute']
     },
 }
 
