@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from secret import API_KEY
 from data import DATA
+from loggingFunc import *
+
 
 def pieWinrate(df):
     plt.figure()
@@ -34,9 +36,10 @@ def getInfo(server: str, ig):
     if 0 <= index <= 3: continent = 'americas' 
     if 4 <= index <= 6: continent = 'europe' 
     else: continent = 'asia'
-
     res = requests.get(f"https://{server}.api.riotgames.com/lol/summoner/v4/summoners/by-name/{ig}?api_key={API_KEY}")
-    if res.status_code != 200: raise Exception
+    if res.status_code != 200:
+        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        raise Exception
 
     return res.json()["puuid"], continent
 
@@ -53,7 +56,9 @@ def getJsonFromlolApi(continent, g):
     """
 
     res = requests.get(f"https://{continent}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
-    if res.status_code != 200: raise Exception
+    if res.status_code != 200:
+        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        raise Exception
     return res.json()
 
 def getDFfromJson(games, champ, puuid, continent):
@@ -68,13 +73,10 @@ def getDFfromJson(games, champ, puuid, continent):
     """
 
     array = []
-    error = False
     for g in games:
         try:
             json = getJsonFromlolApi(continent, g)
         except Exception:
-            print('Error on game id : ', g)
-            error = True
             break
         index = json['metadata']['participants'].index(puuid)
         player = json['info']['participants'][index]
@@ -88,7 +90,7 @@ def getDFfromJson(games, champ, puuid, continent):
         
         array.append(pd.DataFrame({x: [player[x]] for x in DATA[champ]["columns"]}))
         
-    return pd.concat(array).reset_index(drop=True), error
+    return pd.concat(array).reset_index(drop=True)
 
 def getParams(champ):
     def gen(n):
@@ -123,8 +125,8 @@ champ = sys.argv[3]
 
 puuid, continent = getInfo(server, ig)
 games = getRecentGames(puuid, continent)
-df, error = getDFfromJson(games, champ, puuid, continent)
-if error: quit()
+df = getDFfromJson(games, champ, puuid, continent)
 params = getParams(champ)
 score = getScore(df, champ)
+info(f'{ig} from {continent} get his score on {champ}')
 print(score)

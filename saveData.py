@@ -1,5 +1,6 @@
 import glob, os, time, requests, shutil, sys
 import pandas as pd
+from loggingFunc import *
 from secret import API_KEY
 from data import DATA
 
@@ -12,7 +13,9 @@ def getJsonFromlolApi(country, g):
     """
 
     res = requests.get(f"https://{country}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
-    if res.status_code != 200: raise Exception
+    if res.status_code != 200:
+        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        raise Exception
     return res.json()
 
 def getRecentGames(puuid, country, count):
@@ -26,7 +29,9 @@ def getRecentGames(puuid, country, count):
 
     res = requests.get(f"https://{country}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start={count*20}&count=20&api_key={API_KEY}")
     
-    if res.status_code != 200: raise Exception
+    if res.status_code != 200:
+        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        raise Exception
     return res.json()
 
 def getDFfromJson(champ, count):
@@ -46,7 +51,6 @@ def getDFfromJson(champ, count):
         try:
             games = getRecentGames(p["puuid"], p["country"], count)
         except Exception:
-            print('games')
             error = True
             break
         
@@ -95,6 +99,8 @@ try:
         for fname in filenames:
             with open(fname) as infile:
                 outfile.write(infile.read())
+        
+        info(f'Data of {champ} added')
 
 except Exception:
     print('Nothing...')

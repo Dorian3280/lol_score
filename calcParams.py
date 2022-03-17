@@ -1,5 +1,6 @@
 import fileinput, sys
 import pandas as pd
+from loggingFunc import *
 
 def dropOutliers(df):
     df.drop(df[df['hadAfkTeammate'] > 0].index, inplace=True)
@@ -21,13 +22,11 @@ def returnParams(df: pd.DataFrame):
 
 def updateParams(champ, params: dict):
     fi = fileinput.input(f'data/params.txt', inplace=True)
-    try:
-        for line in fi:
-            if line.find(champ) != -1:
-                line = f'''{champ};{';'.join(f"{k},{','.join(map(str, v))}" for k, v in params.items())}\n'''
-            sys.stdout.write(line)
-    except:
-        fi.close()
+    for line in fi:
+        if line.find(champ) != -1:
+            line = f'''{champ};{';'.join(f"{k},{','.join(map(str, v))}" for k, v in params.items())}\n'''
+        sys.stdout.write(line)
+    info(f'Parameters of {champ} updated')
     fi.close()
 
 # Type the champpion name in command line after execution of the .py file - python calcParams.py [Champion name]
