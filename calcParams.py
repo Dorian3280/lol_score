@@ -26,10 +26,11 @@ def updateParams(champ, params: dict):
         if line.find(champ) != -1:
             line = f'''{champ};{';'.join(f"{k},{','.join(map(str, v))}" for k, v in params.items())}\n'''
         sys.stdout.write(line)
-    info(f'Parameters of {champ} updated')
+    loggingInfo(f"Parameters of {champ} updated")
     fi.close()
 
-# Type the champpion name in command line after execution of the .py file - python calcParams.py [Champion name]
+# Type the champpion name in command line after execution of the .py file
+# python calcParams.py [Champion name]
 champ = sys.argv[1].title()
 
 df = pd.read_csv(f"data/{champ}.txt")

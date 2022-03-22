@@ -5,6 +5,20 @@ from secret import API_KEY
 from data import DATA
 from loggingFunc import *
 
+def getServer(server):
+    servers = {
+        'EUW': ('euw1', 'europe'),
+        'EUNE': ('eun1', 'europe'),
+        'RU': ('ru', 'europe'),
+        'NA': ('na1', 'americas'), 
+        'BR': ('br1', 'americas'),
+        'LAN': ('la1', 'americas'),
+        'OCE': ('oc1', 'asia'),
+        'KR': ('kr', 'asia'),
+        'JP': ('jp1', 'asia')
+    }
+    
+    return servers[server]
 
 def pieWinrate(df):
     plt.figure()
@@ -16,29 +30,14 @@ def pieWinrate(df):
     plt.show()
 
 def formatScore(nbr):
-    level = ""
-    if nbr < 0.2:
-        level = "C'est pas vraiment pas ouf.."
-    elif nbr < 0.4:
-        level = "Ça vaaaaaaa"
-    elif nbr < 0.6:
-        level = "Il s'en sort bien !"
-    elif nbr < 0.8:
-        level = "Trop fort"
-    else:
-        level = "Il est juste gifted en faite"
-    return f"T'es a {nbr:.0%} de performance. {level}"
+    return f"{nbr:.0%}"
 
 def getInfo(server: str, ig):
-    servers = ['na1', 'br1', 'la1', 'la2', 'eun1', 'euw1', 'ru', 'oc1', 'kr', 'jp1']
-    index = servers.index(server)
-
-    if 0 <= index <= 3: continent = 'americas' 
-    if 4 <= index <= 6: continent = 'europe' 
-    else: continent = 'asia'
+    
+    server, continent = getServer(server)
     res = requests.get(f"https://{server}.api.riotgames.com/lol/summoner/v4/summoners/by-name/{ig}?api_key={API_KEY}")
     if res.status_code != 200:
-        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        loggingError(res, getInfo.__name__)
         raise Exception
 
     return res.json()["puuid"], continent
@@ -57,7 +56,7 @@ def getJsonFromlolApi(continent, g):
 
     res = requests.get(f"https://{continent}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
     if res.status_code != 200:
-        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        loggingError(res, getJsonFromlolApi.__name__)
         raise Exception
     return res.json()
 
@@ -118,7 +117,8 @@ def getScore(df, champ):
     s = calcScore(params, df)
     return s
 
-# Type the champpion name in command line after execution of the .py file - python getYourScore.py [Pseudo] [server] [Champion]
+# Type the champpion name in command line after execution of the .py file
+# python getYourScore.py [Pseudo] [server] [Champion]
 ig = sys.argv[1]
 server = sys.argv[2]
 champ = sys.argv[3]
@@ -128,5 +128,4 @@ games = getRecentGames(puuid, continent)
 df = getDFfromJson(games, champ, puuid, continent)
 params = getParams(champ)
 score = getScore(df, champ)
-info(f'{ig} from {continent} get his score on {champ}')
-print(score)
+loggingInfo(f'{ig} from {continent.title()} gets {formatScore(score)} on {champ}')

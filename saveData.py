@@ -4,20 +4,6 @@ from loggingFunc import *
 from secret import API_KEY
 from data import DATA
 
-def getJsonFromlolApi(country, g):
-
-    """
-    Operation GET from the Riot Api, return all information about a game
-    country : where the game have been played
-    g : the id of the game
-    """
-
-    res = requests.get(f"https://{country}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
-    if res.status_code != 200:
-        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
-        raise Exception
-    return res.json()
-
 def getRecentGames(puuid, country, count):
 
     """
@@ -30,7 +16,21 @@ def getRecentGames(puuid, country, count):
     res = requests.get(f"https://{country}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start={count*20}&count=20&api_key={API_KEY}")
     
     if res.status_code != 200:
-        error(res.status_code, res.json()["status_code"]["message"], __name__, __file__)
+        loggingError(res, getRecentGames.__name__)
+        raise Exception
+    return res.json()
+
+def getJsonFromlolApi(country, g):
+
+    """
+    Operation GET from the Riot Api, return all information about a game
+    country : where the game have been played
+    g : the id of the game
+    """
+
+    res = requests.get(f"https://{country}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
+    if res.status_code != 200:
+        loggingError(res, getJsonFromlolApi.__name__)
         raise Exception
     return res.json()
 
@@ -46,7 +46,9 @@ def getDFfromJson(champ, count):
     """
 
     array = []
+    res = None
     error = False
+    
     for p in DATA[champ]["players"]:
         try:
             games = getRecentGames(p["puuid"], p["country"], count)
@@ -58,7 +60,6 @@ def getDFfromJson(champ, count):
             try:
                 json = getJsonFromlolApi(p['country'], g)
             except Exception:
-                print('game')
                 error = True
                 break
             index = json['metadata']['participants'].index(p["puuid"])
@@ -72,9 +73,15 @@ def getDFfromJson(champ, count):
             player['dmgPerMinute'] = round(player['totalDamageDealtToChampions'] / (player['gameDuration'] / 60))
             array.append(pd.DataFrame({x: [player[x]] for x in DATA[champ]["columns"]}))
 
-    return pd.concat(array).reset_index(drop=True), not error
+    try:
+        res = pd.concat(array).reset_index(drop=True)
+    except ValueError:
+        pass
+        
+    return res, not error
 
-# Type the champion name in command line after execution of the .py file - python saveDate.py [Champion name]
+# Type the champion name in command line after execution of the .py file
+# python saveData.py [Champion name]
 champ = sys.argv[1].title()
 count = 0
 process = True
@@ -86,9 +93,10 @@ except FileExistsError: pass
 # Riot API has limit request, can't exceed a certain amount of request per minute, so I has to slow down the execution
 while process and count != 5:
     df, process = getDFfromJson(champ, count)
+    if df is None: quit()
     df.to_csv(f"{champ}/{count}.txt", index=False, header=(count==0))
     count += 1
-    time.sleep(120)
+    time.sleep(60)
 
 # Reassemble all datas file into a single one
 try:
@@ -100,7 +108,7 @@ try:
             with open(fname) as infile:
                 outfile.write(infile.read())
         
-        info(f'Data of {champ} added')
+        loggingInfo(f'Data of {champ} added')
 
 except Exception:
     print('Nothing...')
