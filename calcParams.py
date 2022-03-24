@@ -1,23 +1,39 @@
 import fileinput, sys
 import pandas as pd
 from loggingFunc import *
+from data import DATA
 
-def dropOutliers(df):
-    df.drop(df[df['hadAfkTeammate'] > 0].index, inplace=True)
-    df.drop(df[(df['gameEndedInSurrender'] | df['gameEndedInSurrender']) & (df['gameDuration'] < 1350)].index, inplace=True)
 
-def returnParams(df: pd.DataFrame):
-    params = {}
-    weight = 4
-    relevantdf = df.describe()
-    meanScoreCreeps = relevantdf.loc['mean']['CsPerMinute']
-    meanDmg = relevantdf.loc['mean']['dmgPerMinute']
-    params['kills'] = 1/weight, 0, relevantdf.loc['75%']['kills']
-    params['deaths'] = 1/weight, 10, 0
-    params['CsPerMinute'] = 1/weight, round(meanScoreCreeps * 0.6, 1), round(meanScoreCreeps * 1.5, 1)
-    params['dmgPerMinute'] = 1/weight, round(meanDmg * 0.6), round(meanDmg * 1.5)
+def calc(json, index, c):
     
-    # tuple(weigth, minPerformorance, maxPerformance)
+    if c == 'kills':
+        return json['info']['gameDuration']
+    if c == 'deaths':
+        return json['info']["participants"][index]['deaths']
+    if c == 'kills':
+        return json['info']["participants"][index]['kills']
+    if c == 'csPerMinute':
+        return round((json['info']["participants"][index]['totalMinionsKilled'] + json['info']["participants"][index]['neutralMinionsKilled']) / (json['info']['gameDuration'] / 60), 1)
+    if c == 'dmgPerMinute':
+        return round(json['info']["participants"][index]['totalDamageDealtToChampions'] / (json['info']['gameDuration'] / 60))
+    if c == 'win':
+        return int(json['info']["participants"][index]['win'])
+
+def returnParams(df: pd.DataFrame, champ):
+    params = {}
+    columns = DATA[champ]["columns"]
+    weight = round(1/len(columns), 1)
+    statDf = df.describe()
+    csPerMinute = statDf.loc['mean']['csPerMinute']
+    dmgPerMinute = statDf.loc['mean']['dmgPerMinute']
+    
+    for c in columns:
+        if c == "kills": params[c] = weight, 0, statDf.loc['75%']['kills']
+        if c == "deaths": params[c] = weight, 10, 0
+        if c == "csPerMinute": params[c] = weight, round(csPerMinute * 0.6, 1), round(csPerMinute * 1.5, 1)
+        if c == "dmgPerMinute": params[c] = weight, round(dmgPerMinute * 0.6), round(dmgPerMinute * 1.5)
+    
+    # tuple(weight, minPerformance, maxPerformance)
     return params
 
 def updateParams(champ, params: dict):
@@ -26,7 +42,7 @@ def updateParams(champ, params: dict):
         if line.find(champ) != -1:
             line = f'''{champ};{';'.join(f"{k},{','.join(map(str, v))}" for k, v in params.items())}\n'''
         sys.stdout.write(line)
-    loggingInfo(f"Parameters of {champ} updated")
+    loggingInfo(f"{champ} parameters updated")
     fi.close()
 
 # Type the champpion name in command line after execution of the .py file
@@ -34,6 +50,8 @@ def updateParams(champ, params: dict):
 champ = sys.argv[1].title()
 
 df = pd.read_csv(f"data/{champ}.txt")
-dropOutliers(df)
-params = returnParams(df)
+if df.empty:
+    loggingError(404, 'calcParams')
+    quit()
+params = returnParams(df, champ)
 updateParams(champ, params)

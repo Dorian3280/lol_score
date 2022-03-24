@@ -1,3 +1,5 @@
+from jsonpath_ng import jsonpath, parse
+
 DATA = {
     "Vayne": {
         "players": [
@@ -28,7 +30,7 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'CsPerMinute', 'dmgPerMinute']
+        "columns": ['kills', 'deaths', 'csPerMinute', 'dmgPerMinute']
     },
     "Draven": {
         "players": [
@@ -59,11 +61,6 @@ DATA = {
             },
         ],
         "role": "BOTTOM",
-        "columns": ['win', 'gameDuration', 'kills', 'deaths', 'CsPerMinute', 'dmgPerMinute']
+        "columns": ['kills', 'deaths', 'csPerMinute', 'dmgPerMinute']
     },
 }
-
-OUTLIERS = ['gameEndedInEarlySurrender', 'gameEndedInSurrender', 'hadAfkTeammate']
-
-for i in DATA.values():
-    i["columns"] += OUTLIERS

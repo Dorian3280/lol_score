@@ -9,6 +9,7 @@ data/
 test[0-9].py
 test.py
 *.ipynb
+.ipynb_checkpoints/
 
 #Tempary Files
 [Tt]emp*
