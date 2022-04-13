@@ -1,11 +1,14 @@
-import requests, sys, re
+import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from secret import API_KEY
 from data import DATA
 from loggingFunc import *
+import matplotlib.pyplot as plt
+import numpy as np
+import sys
 
-def getServer(server):
+def get_server(server):
     servers = {
         'EUW': ('euw1', 'europe'),
         'EUNE': ('eun1', 'europe'),
@@ -20,35 +23,26 @@ def getServer(server):
     
     return servers[server]
 
-def pieWinrate(df):
-    plt.figure()
-    plt.title("Winrate")
-    percent = df['winrate'].mean()*100
-    labels = ['win', 'lose']
-    plt.pie([percent, 100-percent], labels=labels, autopct='%1.0f%%')
-    plt.legend()
-    plt.show()
-
-def getInfo(server: str, ig):
+def get_info(server: str, ig):
     
-    server, continent = getServer(server)
+    server, continent = get_server(server)
     res = requests.get(f"https://{server}.api.riotgames.com/lol/summoner/v4/summoners/by-name/{ig}?api_key={API_KEY}")
     if res.status_code != 200:
-        loggingError(res.status_code, getInfo.__name__, ig)
+        loggingError(res.status_code, get_info.__name__, ig)
         raise Exception
 
     return res.json()["puuid"], continent
 
-def getRecentGames(puuid, continent):
-    nb = 20
+def get_recent_games(puuid, continent):
+    nb = 80
     res = requests.get(f"https://{continent}.api.riotgames.com/lol/match/v5/matches/by-puuid/{puuid}/ids?type=ranked&start=0&count={nb}&api_key={API_KEY}")
     if res.status_code != 200:
-        loggingError(res.status_code, getRecentGames.__name__)
+        loggingError(res.status_code, get_recent_games.__name__)
         raise Exception
 
     return res.json()
 
-def getJsonFromApi(continent, g):
+def get_json_from_api(continent, g):
 
     """
     Operation GET from the Riot Api, return all information about a game
@@ -58,11 +52,11 @@ def getJsonFromApi(continent, g):
 
     res = requests.get(f"https://{continent}.api.riotgames.com/lol/match/v5/matches/{g}?api_key={API_KEY}")
     if res.status_code != 200:
-        loggingError(res.status_code, getJsonFromApi.__name__)
+        loggingError(res.status_code, get_json_from_api.__name__)
         raise Exception
     return res.json()
 
-def extractDataFromJson(json, index, columns):
+def extract_data_from_json(json, index, columns) -> list:
     
     res = []
     res.append(int(json['info']["participants"][index]['win']))
@@ -77,48 +71,40 @@ def extractDataFromJson(json, index, columns):
             res.append(round((json['info']["participants"][index]['totalMinionsKilled'] + json['info']["participants"][index]['neutralMinionsKilled']) / (json['info']['gameDuration'] / 60), 1))
         if c == 'dmgPerMinute':
             res.append(round(json['info']["participants"][index]['totalDamageDealtToChampions'] / (json['info']['gameDuration'] / 60)))
-    
+            
     return res
 
-def getDFfromJson(games, champ, puuid, continent):
-
-    """
-    Some operations to get all informations I get from API to Dataframes
-    Loop over players I get in data.py
-    Loop over their last games
-    Choose their games where they played the champ
-    Some formatting
-    Get into one dataframe
-    """
+def get_df_from_json(games, champ, puuid, continent) -> pd.DataFrame:
 
     datas = []
     for g in games:
-        json = getJsonFromApi(continent, g)
+        json = get_json_from_api(continent, g)
         index = json['metadata']['participants'].index(puuid)
         
         # Remove outliers
         if json['info']["participants"][index]['championName'] != champ: continue
-        if json['info']["participants"][index]['teamPosition'] != DATA[champ]["role"]: continue
+        if json['info']["participants"][index]['teamPosition'] not in DATA[champ]["role"]: continue
         if (json['info']["participants"][index]['gameEndedInEarlySurrender'] | json['info']["participants"][index]['gameEndedInSurrender']) and (json['info']['gameDuration'] < 1350): continue
-        
-        try: 
+        try:
             if json['challenges']['hadAfkTeammate'] > 0:
                 continue
         except KeyError: pass
         
-        datas.append(extractDataFromJson(json, index, DATA[champ]["columns"]))
+        res = extract_data_from_json(json, index, DATA[champ]["columns"])
+        datas.append(res)
             
     return pd.DataFrame(data=datas, columns=["win", "gameDuration"] + DATA[champ]["columns"])
 
-def convertToIntOrFloat(x):
+# def convertToIntOrFloat(x) -> int | float: pour la 3.10
+def convert_to_int_or_float(x):
     try: return int(x)
     except ValueError: return float(x)
 
 def gen(n):
     for i in n:
         yield i
-        
-def getParams(champ):
+
+def get_params(champ) -> dict[str: list]:
 
     generator = gen(open('./data/params.txt', 'r'))
     
@@ -127,53 +113,23 @@ def getParams(champ):
         if champ in str:
             stats = str.strip().split(';')
             stats.pop(0)
-            return {s.split(',')[0]: list(map(convertToIntOrFloat, s.split(',')[1:])) for s in stats}
+            return {s.split(',')[0]: list(map(convert_to_int_or_float, s.split(',')[1:])) for s in stats}
 
-def calcScore(params, df):
-    s = 0
-    for k, v in params.items():
-        n = df[k].mean()
-        s += v[0]*((n-v[1])/(v[2]-v[1]))
-    return s*100
+def add_score(df, champ) -> pd.DataFrame:
+    params = get_params(champ)
+    df["score"] = df.apply(lambda x: sum([v[0]*((x[k]-v[1])/(v[2]-v[1])) for k, v in params.items()]), axis=1)
+    return df
 
-def getScore(df, champ):
-    params = getParams(champ)
-    return calcScore(params, df)
+def get_your_score(ig, server, champ) -> pd.DataFrame:
+    puuid, continent = get_info(server, ig)
+    games = get_recent_games(puuid, continent)
+    df = get_df_from_json(games, champ, puuid, continent)
+    df = add_score(df, champ)
+    loggingInfo(f'{ig} ({server}) as {champ}')
+    return df
 
-# Type the champpion name in command line after execution of the .py file
-# python getYourScore.py [Pseudo] [server] [Champion]
-ig = sys.argv[1]
+ig = sys.argv[1].replace('_', ' ')
 server = sys.argv[2].upper()
 champ = sys.argv[3].title()
 
-try:
-    puuid, continent = getInfo(server, ig)
-    games = getRecentGames(puuid, continent)
-    df = getDFfromJson(games, champ, puuid, continent)
-    score = getScore(df, champ)
-except Exception:
-    quit()
-    
-def getEvolution(ig, champ):
-    generator = gen(open('debug.log', 'r'))
-    evolution = []
-    try:
-        while line := next(generator):
-            if ig in line and champ in line: evolution.append(int(re.search(r'\d{1,2}(?=%)', line).group()))
-    except:
-        return evolution
-    
-try:
-    lastScore = getEvolution(ig, champ)[-1]
-except IndexError:
-    lastScore = None
-    
-
-def formatScore(nbr, last):
-    
-    if last is None: return f"{nbr:.0%}"
-    
-    evolution = (nbr-last)/last
-    return f"{nbr/100:.0%} ({evolution:+.0%})"
-
-loggingInfo(f'{ig} ({server}) as {champ} -> {formatScore(score, lastScore)}')
+get_your_score(ig, server, champ)

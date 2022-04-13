@@ -4,8 +4,6 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
 # Own environment
-secret.py
-data/
 test[0-9].py
 test.py
 *.ipynb

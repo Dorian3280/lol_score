@@ -16,7 +16,7 @@ def loggingError(code, funcName, more=''):
         503 : 'Service unavailable',
         504 : 'Gateway timeout',
     }
-    logging.error(f'Request error {code} : {listCode[code]} in {funcName} ({more})')
+    logging.error(f'Request error {code} : {listCode[code]} in {funcName}({more})')
 
 def loggingInfo(text):
     logging.info(text)

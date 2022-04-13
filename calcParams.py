@@ -19,7 +19,7 @@ def calc(json, index, c):
     if c == 'win':
         return int(json['info']["participants"][index]['win'])
 
-def returnParams(df: pd.DataFrame, champ):
+def return_params(df: pd.DataFrame, champ):
     params = {}
     columns = DATA[champ]["columns"]
     weight = round(1/len(columns), 1)
@@ -36,7 +36,7 @@ def returnParams(df: pd.DataFrame, champ):
     # tuple(weight, minPerformance, maxPerformance)
     return params
 
-def updateParams(champ, params: dict):
+def update_params(champ, params: dict):
     fi = fileinput.input(f'data/params.txt', inplace=True)
     for line in fi:
         if line.find(champ) != -1:
@@ -44,14 +44,19 @@ def updateParams(champ, params: dict):
         sys.stdout.write(line)
     loggingInfo(f"{champ} parameters updated")
     fi.close()
+    
+def calc_params(champ):
+    df = pd.read_csv(f"data/{champ}.txt")
+    if df.empty:
+        loggingError(404, 'calcParams')
+        quit()
+    params = return_params(df, champ)
+    update_params(champ, params)
+
+
 
 # Type the champpion name in command line after execution of the .py file
 # python calcParams.py [Champion name]
-champ = sys.argv[1].title()
 
-df = pd.read_csv(f"data/{champ}.txt")
-if df.empty:
-    loggingError(404, 'calcParams')
-    quit()
-params = returnParams(df, champ)
-updateParams(champ, params)
+champ = sys.argv[1].title()
+calc_params(champ)
